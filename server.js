@@ -18,7 +18,7 @@ const SMTP_PASS = 'chtg vmfd tbyd uqgh';
 
 // Middleware
 const corsOptions = {
-  origin: 'http://vikasbhosale.vercel.app', // Update with your frontend URL
+  origin: 'https://vikasbhosale.vercel.app', // Update with your frontend URL
   methods: 'GET,POST,PUT,DELETE',
   allowedHeaders: 'Content-Type,Authorization',
   credentials: true,
