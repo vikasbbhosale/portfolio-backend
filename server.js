@@ -18,29 +18,13 @@ const SMTP_PASS = 'ooep jwbj yhor jjki';
 
 
 // Middleware
-const allowedOrigins = [
-  'https://vikasbhosale.vercel.app',
-  'https://www.vikasbhosale.vercel.app',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
-];
-
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/i.test(origin) || /\.vercel\.dev$/i.test(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: 'https://vikasbhosale.vercel.app', // Update with your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: 'Content-Type,Authorization',
   credentials: true,
 };
-
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
