@@ -1,38 +1,26 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-//Email
-const ADMIN_EMAIL = 'bhosalevikas2006@gmail.com'; 
-const SMTP_HOST = 'smtp.gmail.com';
-const SMTP_PORT = 587;
-const SMTP_USER = 'bhosalevikas2006@gmail.com'; 
-const SMTP_PASS = 'ooep jwbj yhor jjki'; 
-
-
-
+// Email Configuration
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bhosalevikas2006@gmail.com'; 
+const SMTP_USER = process.env.SMTP_USER || 'bhosalevikas2006@gmail.com'; 
+// Strip any spaces from the 16-character Google App Password
+const rawPass = process.env.SMTP_PASS || 'ocxk awxd bhaz uimb';
+const SMTP_PASS = rawPass.replace(/\s+/g, '');
 
 // Middleware
-const corsOptions = {
-  origin: 'https://vikasbhosale.vercel.app', // Update with your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: 'Content-Type,Authorization',
-  credentials: true,
-};
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Nodemailer Transporter
+// Gmail Transporter
 const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: false, 
+  service: 'gmail',
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS,
@@ -42,18 +30,29 @@ const transporter = nodemailer.createTransport({
 // Verify transporter configuration
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ SMTP Configuration Error:', error.message);
-    console.log('⚠️  Please update SMTP credentials in server.js');
+    console.error('\n❌ SMTP Configuration Error:', error.message);
+    if (error.responseCode === 535 || (error.message && error.message.includes('535'))) {
+      console.log('\n======================================================');
+      console.log('⚠️  GMAIL APP PASSWORD REJECTED (Google Error 535)');
+      console.log('Your Google App Password has expired, was revoked, or is invalid.');
+      console.log('To generate a fresh 16-character App Password:');
+      console.log('1. Go to: https://myaccount.google.com/security');
+      console.log('2. Make sure "2-Step Verification" is ON.');
+      console.log('3. Search for "App passwords" (or go to https://myaccount.google.com/apppasswords).');
+      console.log('4. Create a new App Password (e.g., name it "Portfolio Backend").');
+      console.log('5. Paste the 16-character password into SMTP_PASS in server.js or set SMTP_PASS in .env.');
+      console.log('======================================================\n');
+    } else {
+      console.log('⚠️  Please verify your SMTP credentials in server.js or .env\n');
+    }
   } else {
     console.log('✅ SMTP Server is ready to send emails');
   }
 });
 
-// API Routes
-
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  res.json({ status: 'ok', message: 'Portfolio backend server is running' });
 });
 
 // Contact form endpoint
@@ -82,7 +81,7 @@ app.post('/api/contact', async (req, res) => {
     from: `"Portfolio Contact Form" <${SMTP_USER}>`,
     to: ADMIN_EMAIL,
     replyTo: email,
-    subject: `New Portfolio Contact from ${name}`,
+    subject: `New Portfolio Project Inquiry from ${name}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -97,7 +96,7 @@ app.post('/api/contact', async (req, res) => {
             padding: 20px;
           }
           .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
             color: white;
             padding: 30px;
             border-radius: 10px 10px 0 0;
@@ -105,7 +104,7 @@ app.post('/api/contact', async (req, res) => {
           }
           .header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
           }
           .content {
             background: #f9f9f9;
@@ -118,12 +117,12 @@ app.post('/api/contact', async (req, res) => {
             padding: 15px;
             background: white;
             border-radius: 5px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #6366f1;
           }
           .field label {
             display: block;
             font-weight: bold;
-            color: #667eea;
+            color: #6366f1;
             margin-bottom: 5px;
             font-size: 12px;
             text-transform: uppercase;
@@ -134,10 +133,10 @@ app.post('/api/contact', async (req, res) => {
             font-size: 16px;
           }
           .message-field {
-            border-left-color: #764ba2;
+            border-left-color: #06b6d4;
           }
           .message-field label {
-            color: #764ba2;
+            color: #06b6d4;
           }
           .footer {
             text-align: center;
@@ -149,7 +148,7 @@ app.post('/api/contact', async (req, res) => {
       </head>
       <body>
         <div class="header">
-          <h1>💌 New Contact Form Submission</h1>
+          <h1>💌 New Portfolio Contact Inquiry</h1>
         </div>
         <div class="content">
           <div class="field">
@@ -162,24 +161,24 @@ app.post('/api/contact', async (req, res) => {
           </div>
           ${phone ? `
           <div class="field">
-            <label>Phone</label>
+            <label>Phone / WhatsApp</label>
             <div class="value">${phone}</div>
           </div>
           ` : ''}
           <div class="field message-field">
-            <label>Message</label>
+            <label>Message / Project Scope</label>
             <div class="value">${message.replace(/\n/g, '<br>')}</div>
           </div>
         </div>
         <div class="footer">
-          <p>This email was sent from your portfolio contact form</p>
-          <p>You can reply directly to ${email}</p>
+          <p>Sent from your portfolio contact form</p>
+          <p>Reply directly to ${email}</p>
         </div>
       </body>
       </html>
     `,
     text: `
-New Contact Form Submission
+New Portfolio Contact Submission
 
 Name: ${name}
 Email: ${email}
@@ -194,9 +193,7 @@ You can reply directly to this email.
   };
 
   try {
-    // Send email
     await transporter.sendMail(mailOptions);
-    
     console.log(`✅ Email sent successfully from ${email}`);
     
     res.json({
@@ -204,11 +201,11 @@ You can reply directly to this email.
       message: 'Your message has been sent successfully! I will get back to you soon.'
     });
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('❌ Error sending email:', error.message);
     
     res.status(500).json({
       success: false,
-      message: 'Failed to send message. Please try again later or contact directly via email.'
+      message: 'Failed to send message via Gmail SMTP. Please update the Gmail App Password in the backend server or contact directly at bhosalevikas2006@gmail.com.'
     });
   }
 });
@@ -217,11 +214,6 @@ You can reply directly to this email.
 app.listen(PORT, () => {
   console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
   console.log(`📧 Contact form endpoint: http://localhost:${PORT}/api/contact\n`);
-  
-  // Configuration reminder
-  if (SMTP_USER === 'your-email@gmail.com') {
-    console.log('⚠️  REMINDER: Update SMTP credentials in server.js before using contact form!\n');
-  }
 });
 
 // Error handling
@@ -232,82 +224,3 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled Rejection:', error);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const express = require("express");
-// const nodemailer = require("nodemailer");
-// const cors = require("cors");
-
-// const app = express();
-// app.use(cors());
-// app.use(express.json());
-
-// const PORT = 5000;
-
-// // DIRECT HARD-CODED SETTINGS (NO .env)
-// const EMAIL_USER = "YOUR_EMAIL@gmail.com";   // Gmail ID
-// const EMAIL_PASS = "YOUR_APP_PASSWORD";      // Gmail App Password
-// const OWNER_EMAIL = "bhosalevikas2006@gmail.com"; // Where emails will be sent
-
-// app.post("/api/contact", async (req, res) => {
-//   const { name, email, phone, message } = req.body;
-
-//   if (!name || !email || !message) {
-//     return res.status(400).json({ message: "Name, email & message are required." });
-//   }
-
-//   try {
-//     const transporter = nodemailer.createTransport({
-//       service: "gmail",
-//       auth: {
-//         user: EMAIL_USER,
-//         pass: EMAIL_PASS
-//       }
-//     });
-
-//     const mailOptions = {
-//       from: EMAIL_USER,
-//       to: OWNER_EMAIL,
-//       subject: `New message from ${name}`,
-//       html: `
-//         <h3>New Contact Form Submission</h3>
-//         <p><strong>Name:</strong> ${name}</p>
-//         <p><strong>Email:</strong> ${email}</p>
-//         <p><strong>Phone:</strong> ${phone || "N/A"}</p>
-//         <p><strong>Message:</strong><br/>${message.replace(/\n/g, "<br/>")}</p>
-//       `
-//     };
-
-//     await transporter.sendMail(mailOptions);
-
-//     res.json({ message: "Message sent successfully!" });
-
-//   } catch (error) {
-//     console.error("Error sending mail:", error);
-//     res.status(500).json({ message: "Failed to send message. Try again later." });
-//   }
-// });
-
-// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
